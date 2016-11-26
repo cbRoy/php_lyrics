@@ -1,5 +1,6 @@
-<?php 
-//header('Content-type: text/html; charset=utf-8');
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 ?>
 <HTML>
 <HEAD>
@@ -54,7 +55,7 @@ include '../includes/phpQuery.php';
 
 $submits = array( "Search", "Lucky!" );
 $hosts = array( 
-		"LetsSingIt.com" => "http://search.letssingit.com/cgi-exe/am.cgi?a=search&l=archive&s=",
+		"LetsSingIt.com" => "http://search.letssingit.com/?a=search&s=",
 		"genius.com" => "http://genius.com/search?q=",
 		"songlyrics.com" => "http://www.songlyrics.com/index.php?section=search&searchW="
 );
@@ -64,51 +65,16 @@ if(isset($_POST['host'])){
 $self = $_SERVER['PHP_SELF'];
 if(isset($_GET['h'])){ 			//DISPLAY LYRICS
 	if(array_key_exists($_GET['h'],$hosts)){
-		$host = $_GET['h'];
+		echo get_lyrics($_GET['h'], get_url_contents($_GET['u']));
 	}else{
-		$host = null;
-	}
-	$lookup = array_keys($hosts);
-	switch($host){
-		case $lookup[0]:
-			//clicked lyrics link
-			$url = $_GET['u'];
-			$return = get_url_contents($url);
-
-			$dom = new DomDocument;
-			@$dom->loadHTML($return);
-			$title = $dom->getElementsByTagName('title')->item(0)->textContent;
-			$lyrics = $dom->getElementById('lyrics')->nodeValue;
-			echo $title."<BR><BR>";
-			echo nl2br($lyrics);
-		break;
-		case $lookup[1]:
-			//rapgenius lyrics
-			$url = $_GET['u'];
-
-			$html = file_get_html($url);
-			$title = array_shift($html->find('title'))->innertext;
-			$lyrics = array_shift($html->find('.lyrics'))->plaintext;
-			echo $title."<BR><BR>";
-			echo nl2br($lyrics);
-		break;
-		case $lookup[2]:
-			$url = $_GET['u'];
-			$html = get_url_contents($url);
-			$dom = new DOMDocument;
-			@$dom->loadHTML($html);
-			$lyrics = $dom->getElementById('songLyricsDiv')->nodeValue;
-			echo nl2br($lyrics);
-		break;
-		default:
-			echo "you broke it, not fix it.";
+		echo "oops...";
 	}
 }else if(!isset($_POST['search'])){		//DISPLAY SEARCH FORM
 	echo "<form action=\"$self\" method=post>";
 	echo "<input type=text name=search><br>";
 	echo "<select name=host>";
 	foreach($hosts as $host => $link){
-		echo "<option value=$host>$host</option>";
+		echo "<option value=\"$host\">$host</option>";
 	}
 	echo "</select><BR>";
 	foreach($submits as $submit){
@@ -116,46 +82,46 @@ if(isset($_GET['h'])){ 			//DISPLAY LYRICS
 	}
 	echo "</form>";
 }else{	
-	if($_POST['submit'] != "Lucky!"){
-		//First search for song:
 		$url = $hosts[$selectedHost];
 		$url .= rawurlencode($_POST['search']);
-		$ret = get_url_contents($url);
-
-		echo get_results($_POST['host'],$ret);
-
+		$raw = get_url_contents($url);
+	if($_POST['submit'] != "Lucky!"){
+		// show results of all artists/songs
+		echo get_results($_POST['host'],$raw);
 	}else{
-		//get_results from each host
-		//create seperate divs for each host
-		//buttons across the top for each host
-		//buttons decide which div is shown
-		// don't like this model anymore... to intensive upfront.
-		// we want faster load times, not slower loads and quicker switches...
-
-		foreach($hosts as $host => $link){ // get results for each host? no way too slow... 
-			$url = $link;
-			$url .= rawurlencode($_POST['search']);
-			$ret = get_url_contents($url);
-
-			$results[$host] = get_lucky($host,$ret);
-			echo " <a href class=\"host\" onClick=\"event.preventDefault();toggle(this,'$host');\">[ " . $host . " ]</a> ";
-		}
-		echo "<BR>";
-		$i=0;
-		foreach($results as $host => $lyrics){
-			echo "<DIV class=\"lyrics\"" . (($i++ == 0) ? "" : " style=\"display:none;\""); 
-			echo " id=\"$host\">";
-			echo $lyrics;
-			echo "</div>";
-		}
-
-		//echo '<pre>l';
-		//echo print_r($results);
-		//echo 'k</pre>';
-
+		// show show first result
+		echo get_lucky($selectedHost,$raw);
 	}
 }
-
+function get_lyrics($host,$html){
+	global $hosts;
+	$lookup = array_keys($hosts);
+	switch($host){
+		case $lookup[0]:
+			//clicked lyrics link
+			$dom = new DomDocument;
+			@$dom->loadHTML($html);
+			$title = $dom->getElementsByTagName('title')->item(0)->textContent;
+			$lyrics = $dom->getElementById('lyrics')->nodeValue;
+			return $title . "<BR><BR>" . nl2br($lyrics);
+		break;
+		case $lookup[1]:
+			//genius lyrics
+			$html = str_get_html($html);
+			$title = array_shift($html->find('title'))->innertext;
+			$lyrics = array_shift($html->find('.lyrics'))->plaintext;
+			return $title . "<BR><BR>" . nl2br($lyrics);
+		break;
+		case $lookup[2]:
+			$dom = new DOMDocument;
+			@$dom->loadHTML($html);
+			$lyrics = $dom->getElementById('songLyricsDiv')->nodeValue;
+			return nl2br($lyrics);
+		break;
+		default:
+			echo "you broke it, not fix it.";
+	}
+}
 function get_lucky($host,$html){
 	global $hosts;
 	$lookup = array_keys($hosts);
@@ -168,15 +134,7 @@ function get_lucky($host,$html){
 			$title  = $row->find('td',1);
 			preg_match("'<a href=\"(.*)\" class=tt_song.*>(.*)<\/a>'is",$title,$t_link);
 			$lyrics_link = $t_link[1];
-			$page->clear(); 
-			unset($page);
-			$return = get_url_contents($lyrics_link);
-			$dom = new DomDocument;
-			@$dom->loadHTML($return);
-			$title = $dom->getElementsByTagName('title')->item(0)->textContent;
-			$lyrics = $dom->getElementById('lyrics')->nodeValue;
-			$tmp = $title."<BR><BR>";
-			return $tmp .= nl2br($lyrics);
+			return get_lyrics($lookup[0], get_url_contents($lyrics_link)); 
 		
 break;
 		case $lookup[1]: //rapgenius.com
@@ -187,24 +145,12 @@ break;
 			$page->clear(); 
 			unset($page);
 			$html = file_get_html($lyrics_link);
-			$title = array_shift($html->find('title'))->innertext;
-			$lyrics = array_shift($html->find('.lyrics'))->plaintext;
-			$tmp = $title."<BR><BR>";
-			$html->clear(); 
-			unset($html);
-			return $tmp.= nl2br($lyrics);
+			return get_lyrics($lookup[1],$html);
 break;
 	case $lookup[2]:
 		$page = str_get_html($html);
 		$lyrics_link = $page->find('h3 a',0)->href; //first title
-		$page->clear();
-		unset($page);
-		$html = get_url_contents($lyrics_link);
-		$dom = new DOMDocument;
-		@$dom->loadHTML($html);
-		$title = $dom->getElementsByTagName('title')->item(0)->nodeValue;
-		$lyrics = $dom->getElementById('songLyricsDiv')->nodeValue;
-		return $title . "<BR><BR>" . nl2br($lyrics);
+		return get_lyrics($lookup[2], get_url_contents($lyrics_link));
 	break;
 		default:
 			return "Oops! something bad happened while getting lyrics!";
@@ -218,25 +164,19 @@ function get_results($host,$ret){
 		case $lookup[0]:  //letssingit.com
 
 	//find main table data list, includes a table with artist and song
-	$find = "'<table class=data_list>(.*)<\/table>'is";
-	preg_match($find,$ret,$results);
-
 	//use Simple HTML Dom Parser
 	// find every row in table and grab column artist(0)
 	// and title(1) and convert links to redirect back
-	$html = str_get_html($results[1]);
+	$html = str_get_html($ret);
 	$tmp = '';
-	foreach($html->find('table[@class=data_list]tr') as $row){
-		$artist = $row->find('td',0);
-		$title  = $row->find('td',1);
-		if($title != null && $title != "<td>&nbsp;</td>" && !strstr($title,"tt_album_")){
-			preg_match("'<a href=\"(.*)\" class=tt_artist.*>(.*)<\/a>'is",$artist,$a_link);
-			preg_match("'<a href=\"(.*)\" class=tt_song.*>(.*)<\/a>'is",$title,$t_link);
+	foreach($html->find('table[class="table_as_list_v2"]tr') as $row){
+		$song  = $row->find('td',1);
 
-			#$tmp.= "<a href=\"".$self."?a=".$a_link[1]."\">$a_link[2]</a> "; //not really used right now
-			$tmp .= $a_link[2]; //artist name
-			$tmp.= " - <a href=\"?h=". $lookup[0]."&u=".$t_link[1]."\">$t_link[2] lyrics</a> <BR>";
-		}
+		$title = $song->find('a',0)->innertext;
+		$artist = $song->find('a',1)->innertext;
+		$link = $song->find('a',0)->href;
+		$tmp .= $artist;
+		$tmp .= " - <a href=\"?h=". $lookup[0]."&u=".$link."\">$title lyrics</a> <BR>";
 	}
 	return $tmp;
 break;
