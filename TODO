@@ -1,0 +1,13 @@
+use class structure for hosts (refer to torrents)
+
+"LetsSingIt.com" => "http://search.letssingit.com/?a=search&s=",
+"genius.com" => "http://genius.com/search?q=",
+"songlyrics.com" => "http://www.songlyrics.com/index.php?section=search&searchW="
+
+got the basics working together. now need to finish up genius and get it searching
+
+   work on HostAbstract
+    getResults && getLucky
+      may need to tweak the parseSpec since there'll be two
+       1 - results page
+       2 - lyrics page
