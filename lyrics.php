@@ -4,49 +4,11 @@ ini_set('display_errors', 1);
 ?>
 <HTML>
 <HEAD>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-<TITLE>mobile Lyrics</TITLE>
-<STYLE>
-.lyrics{
-}
-.hidden{
-	display:none;
-}
-.show{
-	display:block;
-}
-</STYLE>
-<script>
-var hidden = false;
-function getElementsByClass(searchClass, domNode, tagName) {
-	if (domNode == null) domNode = document;
-	if (tagName == null) tagName = '*';
-	var el = new Array();
-	var tags = domNode.getElementsByTagName(tagName);
-	var tcl = " "+searchClass+" ";
-	for(i=0,j=0; i<tags.length; i++) {
-		var test = " " + tags[i].className + " ";
-		if (test.indexOf(tcl) != -1)
-		el[j++] = tags[i];
-	}
-	return el;
-}
-
-function toggle(clicked,host){
-	var div = getElementsByClass("lyrics",null,"div");
-	for(var i=0; i<div.length; i++){
-		div[i].style.display = 'none';
-	}
-	var show_div = document.getElementById(host);
-	show_div.style.display = 'block';
-	var hosts = getElementsByClass("host",null,"a");
-	for(var i=0; i<hosts.length; i++){
-		hosts[i].style.fontWeight='normal';
-	}
-	clicked.style.fontWeight='bold';
-}
-</script>
+  <TITLE>mobile Lyrics</TITLE>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <link rel="stylesheet" type="text/css" href="./css/main.css" >
+  <script src="./js/main.js"></script>
 </HEAD>
 <BODY>
 <?php
@@ -54,7 +16,7 @@ require('../includes/simple_html_dom.php');
 include '../includes/phpQuery.php';
 
 $submits = array( "Search", "Lucky!" );
-$hosts = array( 
+$hosts = array(
 		"LetsSingIt.com" => "http://search.letssingit.com/?a=search&s=",
 		"genius.com" => "http://genius.com/search?q=",
 		"songlyrics.com" => "http://www.songlyrics.com/index.php?section=search&searchW="
@@ -81,7 +43,7 @@ if(isset($_GET['h'])){ 			//DISPLAY LYRICS
 		echo "<input type=submit name=submit value=" . $submit . ">";
 	}
 	echo "</form>";
-}else{	
+}else{
 		$url = $hosts[$selectedHost];
 		$url .= rawurlencode($_POST['search']);
 		$raw = get_url_contents($url);
@@ -134,15 +96,15 @@ function get_lucky($host,$html){
 			$title  = $row->find('td',1);
 			preg_match("'<a href=\"(.*)\" class=tt_song.*>(.*)<\/a>'is",$title,$t_link);
 			$lyrics_link = $t_link[1];
-			return get_lyrics($lookup[0], get_url_contents($lyrics_link)); 
-		
+			return get_lyrics($lookup[0], get_url_contents($lyrics_link));
+
 break;
 		case $lookup[1]: //rapgenius.com
 			$page = str_get_html($html);
-	
+
 			$row = $page->find('a[class="song_link"]',0); //first result!
 			$lyrics_link = $row->href;
-			$page->clear(); 
+			$page->clear();
 			unset($page);
 			$html = file_get_html($lyrics_link);
 			return get_lyrics($lookup[1],$html);
@@ -160,7 +122,7 @@ break;
 function get_results($host,$ret){
 	global $hosts;
 	$lookup = array_keys($hosts);
-	switch($host){	
+	switch($host){
 		case $lookup[0]:  //letssingit.com
 
 	//find main table data list, includes a table with artist and song
@@ -188,9 +150,9 @@ break;
 /////////////////////////////
 //   FOR RAPGENIUS.COM   ////
 /////////////////////////////
-	
+
 	$html = str_get_html($ret);
-	
+
 	foreach($html->find('a[class="song_link"]') as $row) {
 
 		$tmp.= "<a href=\"?h=".$lookup[1]."&u=".$row->href."\">".$row->plaintext."</a><BR>";
@@ -256,7 +218,7 @@ function get_url_contents($url){
 	curl_setopt ($crl, CURLOPT_CONNECTTIMEOUT, $timeout);
 	$ret = curl_exec($crl);
 	$info = curl_getinfo($crl);
- 
+
 if ($ret === false || $info['http_code'] != 200) {
    $ret = "No cURL data returned for $url [". $info['http_code']. "]";
    if (curl_error($crl))
